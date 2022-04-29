@@ -40,7 +40,8 @@ defmodule CS3033Emu.MixProject do
       {:statistics, "~> 0.6.2"},
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+      {:csv, "~> 2.4"}
     ]
   end
 end
