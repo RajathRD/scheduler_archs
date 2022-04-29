@@ -20,12 +20,12 @@ defmodule Project1.MixProject do
   # Run "mix help deps" for examples and options.
   defp deps do
     [
-      {:csv, "~> 2.4"}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
       {:dialyxir, "~> 1.0", only: [:dev], runtime: false},
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:ex_doc, "~> 0.22", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.22", only: :dev, runtime: false},
+      {:csv, "~> 2.4"}
     ]
   end
 end
