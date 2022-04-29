@@ -13,7 +13,7 @@ defmodule Cluster.Node.Config do
 end
 
 defmodule Cluster.Node do
-  import Emulation, only: [send: 2, timer: 2, cancel_timer: 1, whoami: 0]
+  import Emulation, only: [send: 2, whoami: 0]
 
   import Kernel,
   except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
@@ -33,7 +33,7 @@ defmodule Cluster.Node do
       mem_capacity: nc.memsize,
       cpu_occupied: 0,
       mem_occupied: 0,
-      task_queue: :queue.new()
+      task_queue: nil
     }
   end
 
@@ -86,10 +86,10 @@ defmodule Cluster.Node do
     me = whoami()
     receive do
       {sender, %Job.Creation.RequestRPC{
-        scheduler: scheduler,
+        scheduler: _,
         job: job
       }} ->
-        IO.puts("Node: #{me} -> #{inspect(state)}")
+
         state = if check_feasibility(state, job) do
           send(sender, Job.Creation.ReplyRPC.new(me, true, job.id))
           run_job(job)
@@ -97,6 +97,8 @@ defmodule Cluster.Node do
             state,
             Resource.new(job.cpu_req, job.mem_req)
           )
+          IO.puts("Node: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
+          state
         else
           send(sender, Job.Creation.ReplyRPC.new(me, false, job.id))
           state
@@ -107,15 +109,13 @@ defmodule Cluster.Node do
       {:release, %Resource{
         cpu: cpu,
         mem: mem}} ->
-          IO.puts("Node: #{me} --> Release resource #{cpu} and #{mem}")
+          IO.puts("Node: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
           state = release(
             state,
             Resource.new(cpu, mem)
           )
+          IO.puts("Node Release resurce: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
           loop(state)
-
-        msg ->
-          IO.puts("Node: #{me} received #{inspect(msg)}")
     end
   end
 end

@@ -1,4 +1,4 @@
-defmodule Scheduler do
+defmodule Scheduler.Centralized do
   import Emulation, only: [send: 2, whoami: 0, timer: 2]
 
   import Kernel,
@@ -14,13 +14,16 @@ defmodule Scheduler do
     retry_timer: nil
   )
 
-  def init(cluster, schedule_timeout, retry_timeout) do
-    %Scheduler{
+  @schedule_timeout 50
+  @retry_timeout 300
+
+  def init(cluster) do
+    %Scheduler.Centralized{
       task_queue: :queue.new(),
       job_complete_count: 0,
       cluster: cluster,
-      schedule_timeout: schedule_timeout,
-      retry_timeout: retry_timeout,
+      schedule_timeout: @schedule_timeout,
+      retry_timeout: @retry_timeout,
       schedule_timer: nil,
       retry_timer: nil
     }
@@ -30,12 +33,17 @@ defmodule Scheduler do
     IO.puts("Queue: #{inspect(state.task_queue)}")
   end
 
-  def inc_job_complete(state) do
+  def job_complete(state) do
     %{state | job_complete_count: state.job_complete_count + 1}
   end
 
   def add_job(state, job) do
     %{state | task_queue: :queue.in(job, state.task_queue)}
+  end
+
+  def remove_job(state) do
+    {{:value, _}, queue} = :queue.out(state.task_queue)
+    %{state | task_queue: queue}
   end
 
   def start_schedule_timer(state) do
@@ -61,7 +69,7 @@ defmodule Scheduler do
     if :queue.len(state.task_queue) > 0 do
       job = :queue.get(state.task_queue)
       node = Enum.random(state.cluster.nodes)
-      IO.puts("Scheduler: #{me} sent creation to node #{node}")
+      IO.puts("#{me} sent to #{node} job -> CPU: #{job.cpu_req} MEM: #{job.mem_req} Duration:#{job.duration}")
       send(
         node,
         Job.Creation.RequestRPC.new(
@@ -72,8 +80,8 @@ defmodule Scheduler do
     end
   end
 
-  def start(cluster, schedule_timeout, retry_timeout) do
-    state = init(cluster, schedule_timeout, retry_timeout)
+  def start(cluster) do
+    state = init(cluster)
     state = start_schedule_timer(state)
     run(state)
   end
@@ -91,11 +99,12 @@ defmodule Scheduler do
         accept: accept,
         job_id: job_id
       }} ->
-        case accept do
-          true ->
+        state = if accept do
             IO.puts("Node: #{node} - creation success for #{job_id}")
-          _ ->
+            remove_job(state)
+          else
             IO.puts("Node: #{node} - creation failure for #{job_id}")
+            state
         end
         state = start_schedule_timer(state)
         run(state)

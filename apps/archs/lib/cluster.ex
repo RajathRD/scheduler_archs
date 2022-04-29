@@ -21,7 +21,15 @@ defmodule Cluster.Config do
     %Cluster.Config {
       num_nodes: 1,
       cpu_count_per_machine: 10,
-      memsize_per_machine: 50
+      memsize_per_machine: 25
+    }
+  end
+
+  def default_twolevel do
+    %Cluster.Config {
+      num_nodes: 4,
+      cpu_count_per_machine: 10,
+      memsize_per_machine: 25
     }
   end
 end

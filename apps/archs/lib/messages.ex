@@ -35,7 +35,7 @@ defmodule Job.Payload do
         id: job_id,
         task_id: 0,
         arrival_time: 0,
-        duration: Enum.random(100..200),
+        duration: Enum.random(100..400),
         cpu_req: Enum.random(1..3),
         mem_req: Enum.random(5..10)
       }
