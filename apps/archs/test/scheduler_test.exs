@@ -14,9 +14,9 @@ defmodule SCHTest do
     Emulation.init()
     cluster_config = Cluster.Config.default()
 
-    Cluster.setup(cluster_config)
+    cluster = Cluster.setup(cluster_config)
 
-    spawn(:scheduler_1, fn -> Scheduler.start() end)
+    spawn(:scheduler_1, fn -> Scheduler.start(cluster, 500, 500) end)
     client = spawn(:client_1, fn -> Client.start([:scheduler_1]) end)
 
     Process.send_after(self(), :timeout, 2_000)

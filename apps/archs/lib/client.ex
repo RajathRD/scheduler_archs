@@ -6,22 +6,29 @@ defmodule Client do
 
   defstruct(
     schedulers: [],
+    timeout: nil
   )
 
   def init(schedulers) do
-    %Client{schedulers: schedulers}
+    %Client{
+      schedulers: schedulers,
+      timeout: 100
+    }
   end
 
   def start(schedulers) do
     state = init(schedulers)
-    run(state)
+    submit(0, state)
   end
 
-  def run(state) do
+  def submit(state, id) do
     me = whoami()
-    job = Job.Payload.empty(me)
+    :timer.sleep(state.timeout)
+    # job = Job.Payload.empty(me, id)
+    job = Job.Payload.random(me, id)
     sch = Enum.random(state.schedulers)
-    IO.puts("#{me} sending job to #{sch}");
+    # IO.puts("#{me} sending job to #{sch}");
     send(sch, {:job_submit, job})
+    submit(state, id)
   end
 end

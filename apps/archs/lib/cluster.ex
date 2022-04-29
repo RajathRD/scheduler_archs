@@ -19,7 +19,7 @@ defmodule Cluster.Config do
 
   def default do
     %Cluster.Config {
-      num_nodes: 2,
+      num_nodes: 1,
       cpu_count_per_machine: 10,
       memsize_per_machine: 50
     }
