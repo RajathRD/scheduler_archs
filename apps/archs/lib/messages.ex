@@ -134,7 +134,7 @@ defmodule Resource.ReleaseRPC do
   )
 
   def new(node, rstate) do
-    %Resource.State{
+    %Resource.ReleaseRPC{
       node: node,
       resource: rstate
     }

@@ -25,7 +25,7 @@ defmodule Cluster.Config do
       num_nodes: 1,
       cpu_count_per_machine: 10,
       memsize_per_machine: 25,
-      nodes: []
+      nodes: nil
     }
   end
 

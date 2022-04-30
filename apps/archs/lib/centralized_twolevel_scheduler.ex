@@ -6,33 +6,36 @@ defmodule Coordinator.CentralizedTwoLevel do
 
   defstruct(
     cluster: nil,
-    nodes: nil,
+    snodes: nil,
     schedulers: nil
   )
 
   def init_config(cluster, num_schedulers) do
-    num_nodes_per_scheduler = ceil(length(cluster.nodes)/num_schedulers)
     schedulers = Enum.map(
       1..num_schedulers,
       fn i -> String.to_atom("s_#{i}") end)
-    all_nodes = cluster.nodes
+
+    all_nodes = Map.keys(cluster.nodes)
     all_nodes = Enum.shuffle(all_nodes)
 
-    nodes = %{}
-
-    # split
-    nodes = Enum.map(
+    # resource initialization
+    num_nodes_per_scheduler = ceil(length(all_nodes)/num_schedulers)
+    snodes = Enum.map(
       0..num_schedulers-1,
       fn i ->
           scheduler = Enum.at(schedulers, i)
           sample_nodes = Enum.slice(all_nodes, i*num_nodes_per_scheduler, num_nodes_per_scheduler)
+          sample_nodes =
+            Enum.map(sample_nodes, fn node -> %{node => Map.get(cluster.nodes, node)} end)
+            |> Enum.reduce(fn x, y -> Map.merge(x,y) end)
+
           %{scheduler => sample_nodes}
       end)
       |> Enum.reduce(fn x, y -> Map.merge(x, y) end)
 
     %Coordinator.CentralizedTwoLevel{
       cluster: cluster,
-      nodes: nodes,
+      snodes: snodes,
       schedulers:  schedulers
     }
   end
@@ -44,8 +47,8 @@ defmodule Coordinator.CentralizedTwoLevel do
 
     Enum.map(state.schedulers,
       fn scheduler ->
-        scheduler_nodes = Map.get(state.nodes, scheduler)
-        num_nodes = length(scheduler_nodes)
+        scheduler_nodes = Map.get(state.snodes, scheduler)
+        num_nodes = length(Map.keys(scheduler_nodes))
         scheduler_cluster = Cluster.Config.new(
           num_nodes,
           state.cluster.cpu_count_per_machine,
