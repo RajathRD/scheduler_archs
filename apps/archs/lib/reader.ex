@@ -11,7 +11,7 @@ end
 
 defmodule Reader do
 
-  import Kernel, except: [if: 2, unless: 2, send: 2]
+  import Kernel, except: [send: 2]
   import Emulation, only: [send: 2, whoami: 0]
 
   @moduledoc false
@@ -70,11 +70,11 @@ defmodule Reader do
     IO.puts("delay #{delay}")
     #    If delay is too great, hold off processing for a bit
 
-    #    if delay > 30000 do
-    #      IO.puts("Delay is too large, waiting for a while")
-    #      Process.sleep(delay - 25000)
-    #      delay = _get_delay(start_time, arrival_time)
-    #    end
+    if delay > 30000 do
+      IO.puts("Delay is too large, waiting for a while")
+      Process.sleep(delay - 25000)
+      delay = _get_delay(start_time, arrival_time)
+    end
 
     submit(payload, delay, config.schedulers)
   end
@@ -114,7 +114,7 @@ defmodule Reader do
 
     File.stream!(config.trace_path)
     |> CSV.decode
-#    |> Enum.take(1000)
+      #    |> Enum.take(1000)
     |> Stream.each(
          fn item ->
            process(item, start_time, config)
