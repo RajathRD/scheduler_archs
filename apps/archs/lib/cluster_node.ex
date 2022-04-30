@@ -22,7 +22,8 @@ defmodule Cluster.Node do
   defstruct(
     resource: nil,
     # FCFS task_queue
-    task_queue: nil
+    task_queue: nil,
+    log: nil
   )
 
   def print_resource_state(state) do
@@ -38,7 +39,8 @@ defmodule Cluster.Node do
   def init(resource) do
     %Cluster.Node{
       resource: resource,
-      task_queue: nil
+      task_queue: nil,
+      log: []
     }
   end
 
@@ -83,9 +85,18 @@ defmodule Cluster.Node do
   def run_job(job) do
     Process.send_after(
       self(),
-      {:release, Resource.new(job.cpu_req, job.mem_req)},
+      {:done, job},
       job.duration
     )
+  end
+
+  defp mark_complete(job) do
+    job = Map.put(job, :status, :done)
+    Map.put(job, :finish_time, :os.system_time(:milli_seconds))
+  end
+
+  defp log_job(state, job) do
+    %{state | log: state.log ++ [job]}
   end
 
   def loop(state) do
@@ -97,12 +108,13 @@ defmodule Cluster.Node do
       }} ->
 
         state = if check_feasibility(state, job) do
-          send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
           run_job(job)
           state = occupy(
             state,
             Resource.new(job.cpu_req, job.mem_req)
           )
+          send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
+          state
 
         else
           send(sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
@@ -111,16 +123,24 @@ defmodule Cluster.Node do
         print_resource_state(state)
         loop(state)
 
-      {:release, %Resource{
-        cpu: cpu,
-        mem: mem}} ->
-          state = release(
-            state,
-            Resource.new(cpu, mem)
-          )
-          IO.puts("Node Release Resource: #{me} ->")
-          print_resource_state(state)
-          loop(state)
+      {:done, job} ->
+        state = release(
+          state,
+          Resource.new(job.cpu_req, job.mem_req)
+        )
+
+        IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
+        job = mark_complete(job)
+        state = log_job(state, job)
+
+        print_resource_state(state)
+
+        send(job.scheduler, {
+          :release,
+          Resource.ReleaseRPC.new(me, state.resource)
+        })
+
+        loop(state)
     end
   end
 end

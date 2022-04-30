@@ -39,6 +39,9 @@ defmodule Scheduler do
   end
 
   def add_job(state, job) do
+    me = whoami()
+    job = Map.put(job, :scheduler, me)
+    job = Map.put(job, :arrival_time, :os.system_time(:milli_seconds))
     %{state | task_queue: :queue.in(job, state.task_queue)}
   end
 
@@ -150,6 +153,14 @@ defmodule Scheduler do
           start_schedule_timer(state)
         end
 
+        run(state)
+
+      {sender, {:release, %Resource.ReleaseRPC{
+        node: node,
+        rstate: rstate
+      }}} ->
+        state = update_node_state(state, node, rstate)
+        IO.puts("#{me} received ReleaseRPC from #{node}")
         run(state)
 
     end

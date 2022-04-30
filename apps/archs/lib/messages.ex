@@ -2,10 +2,12 @@ defmodule Job.Payload do
   @enforce_keys [:id, :arrival_time, :duration, :cpu_req, :mem_req]
   defstruct(
     client: nil,
+    scheduler: nil,
     id: nil,
     task_id: nil,
     arrival_time: nil,
     duration: nil,
+    finish_time: nil,
     cpu_req: nil,
     mem_req: nil
   )
@@ -20,10 +22,12 @@ defmodule Job.Payload do
     mem_req) do
     %Job.Payload {
       client: client,
+      scheduler: nil,
       id: job_id,
       task_id: task_id,
       arrival_time: arrival_time,
       duration: duration,
+      finish_time: nil,
       cpu_req: cpu_req,
       mem_req: mem_req
     }
@@ -32,10 +36,12 @@ defmodule Job.Payload do
   def random(client, job_id) do
       %Job.Payload {
         client: client,
+        scheduler: nil,
         id: job_id,
         task_id: 0,
         arrival_time: 0,
         duration: Enum.random(100..400),
+        finish_time: nil,
         cpu_req: Enum.random(1..3),
         mem_req: Enum.random(5..10)
       }
@@ -44,6 +50,7 @@ defmodule Job.Payload do
   def empty(client, id) do
     %Job.Payload {
       client: client,
+      scheduler: nil,
       id: id,
       task_id: 0,
       arrival_time: 0,
@@ -130,13 +137,13 @@ end
 defmodule Resource.ReleaseRPC do
   defstruct(
     node: nil,
-    resource: nil
+    rstate: nil
   )
 
   def new(node, rstate) do
     %Resource.ReleaseRPC{
       node: node,
-      resource: rstate
+      rstate: rstate
     }
   end
 end

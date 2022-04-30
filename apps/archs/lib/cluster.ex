@@ -37,6 +37,15 @@ defmodule Cluster.Config do
       nodes: nil
     }
   end
+
+    def default_shared do
+      %Cluster.Config {
+        num_nodes: 4,
+        cpu_count_per_machine: 10,
+        memsize_per_machine: 25,
+        nodes: nil
+      }
+  end
 end
 
 defmodule Cluster do
