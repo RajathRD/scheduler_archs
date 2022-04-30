@@ -12,7 +12,7 @@ defmodule Client do
   def init(schedulers) do
     %Client{
       schedulers: schedulers,
-      timeout: 10
+      timeout: 20
     }
   end
 
@@ -34,6 +34,5 @@ defmodule Client do
     send(sch, {:job_submit, job})
 
     submit(state, id+1)
-
   end
 end

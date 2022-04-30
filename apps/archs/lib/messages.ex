@@ -72,14 +72,16 @@ defmodule Job.Creation.ReplyRPC do
   defstruct(
     node: nil,
     accept: nil,
-    job_id: nil
+    job_id: nil,
+    rstate: nil
   )
 
-  def new(node, accept, job_id) do
+  def new(node, accept, job_id, rstate) do
     %Job.Creation.ReplyRPC{
       node: node,
       accept: accept,
-      job_id: job_id
+      job_id: job_id,
+      rstate: rstate
     }
   end
 end
@@ -94,6 +96,47 @@ defmodule Resource do
     %Resource{
       cpu: cpu,
       mem: mem
+    }
+  end
+end
+
+defmodule Resource.State do
+  defstruct(
+    cpu_capacity: nil,
+    mem_capacity: nil,
+    cpu_occupied: nil,
+    mem_occupied: nil,
+  )
+
+  def new(cpu_cap, mem_cap) do
+    %Resource.State{
+      cpu_capacity: cpu_cap,
+      mem_capacity: mem_cap,
+      cpu_occupied: 0,
+      mem_occupied: 0,
+    }
+  end
+
+  def get(cpu_cap, mem_cap, cpu_occ, mem_occ) do
+    %Resource.State{
+      cpu_capacity: cpu_cap,
+      mem_capacity: mem_cap,
+      cpu_occupied: cpu_occ,
+      mem_occupied: mem_occ,
+    }
+  end
+end
+
+defmodule Resource.ReleaseRPC do
+  defstruct(
+    node: nil,
+    resource: nil
+  )
+
+  def new(node, rstate) do
+    %Resource.State{
+      node: node,
+      resource: rstate
     }
   end
 end

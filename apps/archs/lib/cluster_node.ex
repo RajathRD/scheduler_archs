@@ -1,16 +1,17 @@
-defmodule Cluster.Node.Config do
-  defstruct(
-    cpu_count: nil,
-    memsize: nil
-  )
+# defmodule Cluster.Node.Config do
+#   defstruct(
+#     cpu_count: nil,
+#     memsize: nil
+#   )
 
-  def new(cpu_count, memsize) do
-    %Cluster.Node.Config{
-      cpu_count: cpu_count,
-      memsize: memsize
-    }
-  end
-end
+#   def new(cpu_count, memsize) do
+#     %Cluster.Node.Config{
+#       cpu_count: cpu_count,
+#       memsize: memsize
+#     }
+#   end
+# end
+
 
 defmodule Cluster.Node do
   import Emulation, only: [send: 2, whoami: 0]
@@ -19,55 +20,60 @@ defmodule Cluster.Node do
   except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
 
   defstruct(
-    cpu_capacity: nil,
-    mem_capacity: nil,
-    cpu_occupied: nil,
-    mem_occupied: nil,
+    resource: nil,
     # FCFS task_queue
     task_queue: nil
   )
 
-  def init(nc) do
+  def print_resource_state(state) do
+    me = whoami()
+    IO.puts("Node: #{me} ->
+      CPU CAP: #{state.resource.cpu_capacity}
+      CPU USE: #{state.resource.cpu_occupied}
+      MEM CAP: #{state.resource.mem_capacity}
+      MEM USE: #{state.resource.mem_occupied}")
+    state
+  end
+
+  def init(resource) do
     %Cluster.Node{
-      cpu_capacity: nc.cpu_count,
-      mem_capacity: nc.memsize,
-      cpu_occupied: 0,
-      mem_occupied: 0,
+      resource: resource,
       task_queue: nil
     }
   end
 
-  def start(config) do
+  def start(resource) do
     me = whoami()
-    state = init(config)
+    state = init(resource)
     IO.puts("Node: #{me} is live")
     loop(state)
   end
 
-  def add_occupancy(state, job) do
-    %{state |
-      cpu_occupied: state.cpu_occupied + job.cpu_req,
-      mem_occupied: state.mem_occupied + job.mem_req
-    }
-  end
-
   def occupy(state, resource) do
-    %{state |
-      cpu_occupied: state.cpu_occupied + resource.cpu,
-      mem_occupied: state.mem_occupied + resource.mem
+    %{state | resource:
+      Resource.State.get(
+        state.resource.cpu_capacity,
+        state.resource.mem_capacity,
+        state.resource.cpu_occupied + resource.cpu,
+        state.resource.mem_occupied + resource.mem
+      )
     }
   end
 
   def release(state, resource) do
-    %{state |
-      cpu_occupied: state.cpu_occupied - resource.cpu,
-      mem_occupied: state.mem_occupied - resource.mem
+    %{state | resource:
+      Resource.State.get(
+        state.resource.cpu_capacity,
+        state.resource.mem_capacity,
+        state.resource.cpu_occupied - resource.cpu,
+        state.resource.mem_occupied - resource.mem
+      )
     }
   end
 
   def check_feasibility(state, job) do
-    if state.cpu_occupied + job.cpu_req <= state.cpu_capacity and
-      state.mem_occupied + job.mem_req <= state.mem_capacity do
+    if state.resource.cpu_occupied + job.cpu_req <= state.resource.cpu_capacity and
+      state.resource.mem_occupied + job.mem_req <= state.resource.mem_capacity do
       true
     else
       false
@@ -91,30 +97,29 @@ defmodule Cluster.Node do
       }} ->
 
         state = if check_feasibility(state, job) do
-          send(sender, Job.Creation.ReplyRPC.new(me, true, job.id))
+          send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
           run_job(job)
           state = occupy(
             state,
             Resource.new(job.cpu_req, job.mem_req)
           )
-          IO.puts("Node: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
-          state
+
         else
-          send(sender, Job.Creation.ReplyRPC.new(me, false, job.id))
+          send(sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
           state
         end
-
+        print_resource_state(state)
         loop(state)
 
       {:release, %Resource{
         cpu: cpu,
         mem: mem}} ->
-          IO.puts("Node: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
           state = release(
             state,
             Resource.new(cpu, mem)
           )
-          IO.puts("Node Release resurce: #{me} -> CPU CAP: #{state.cpu_capacity} CPU USE: #{state.cpu_occupied} MEM CAP: #{state.mem_capacity} MEM USE: #{state.mem_occupied}")
+          IO.puts("Node Release Resource: #{me} ->")
+          print_resource_state(state)
           loop(state)
     end
   end
