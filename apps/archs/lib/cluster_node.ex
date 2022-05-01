@@ -19,11 +19,14 @@ defmodule Cluster.Node do
   import Kernel,
   except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
 
+  require Logger
+
   defstruct(
     resource: nil,
     # FCFS task_queue
     task_queue: nil,
-    log: nil
+    log: nil,
+    log_file: nil
   )
 
   def print_resource_state(state) do
@@ -37,10 +40,24 @@ defmodule Cluster.Node do
   end
 
   def init(resource) do
+    me = whoami()
+    log_path = "./logs/" <> Atom.to_string(me) <> ".log"
+    File.write(log_path, "")
+    {status, file} = File.open(log_path, [:write])
+
+    case status do
+      :ok ->
+        # Logger.info("File open worked just fine")
+        true
+      _ ->
+        Logger.error("#{me} Log File could not be created at #{log_path}")
+    end
+
     %Cluster.Node{
       resource: resource,
       task_queue: nil,
-      log: []
+      log: [],
+      log_file: file
     }
   end
 
@@ -96,6 +113,10 @@ defmodule Cluster.Node do
   end
 
   defp log_job(state, job) do
+    me = whoami()
+    log_message = "#{job.client},#{me},#{job.scheduler},#{job.id},#{job.arrival_time},#{job.duration},#{job.finish_time},#{job.cpu_req},#{job.mem_req}\n"
+    IO.write(state.log_file, log_message)
+    # IO.puts(log_message)
     %{state | log: state.log ++ [job]}
   end
 
@@ -117,7 +138,7 @@ defmodule Cluster.Node do
           state
 
         else
-          send(sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
+          send( sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
           state
         end
         print_resource_state(state)

@@ -18,10 +18,11 @@ defmodule Client do
 
   def start(schedulers) do
     state = init(schedulers)
-    submit(state, 0)
+    # infinite_submit(state, 0)
+    submit_njobs(state, 0, 5)
   end
 
-  def submit(state, id) do
+  def infinite_submit(state, id) do
     me = whoami()
 
     # job = Job.Payload.empty(me, id)
@@ -33,6 +34,21 @@ defmodule Client do
     # IO.puts("#{me} sending job to #{sch}");
     send(sch, {:job_submit, job})
 
-    submit(state, id+1)
+    infinite_submit(state, id+1)
+  end
+
+  def submit_njobs(state, id, n) do
+    me = whoami()
+
+    :timer.sleep(state.timeout)
+    job = Job.Payload.random(me, id)
+
+    sch = Enum.random(state.schedulers)
+    # IO.puts("#{me} sending job to #{sch}");
+    send(sch, {:job_submit, job})
+
+    if id < n do
+      submit_njobs(state, id+1, n)
+    end
   end
 end

@@ -162,7 +162,6 @@ defmodule Scheduler do
         state = update_node_state(state, node, rstate)
         IO.puts("#{me} received ReleaseRPC from #{node}")
         run(state)
-
     end
   end
 end
