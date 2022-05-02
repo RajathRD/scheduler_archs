@@ -24,7 +24,6 @@ defmodule Reader do
     scaling_factor_cpu = config.scaling_factor_cpu
     scaling_factor_mem = config.scaling_factor_mem
     scaling_factor_time = config.scaling_factor_time
-    IO.inspect(y)
 
     job_id = Enum.fetch(y, 0)
              |> elem(1)
@@ -64,25 +63,26 @@ defmodule Reader do
                |> Kernel./(scaling_factor_time)
                |> trunc
 
-
-    payload = Job.Payload.new("", job_id, task_id, arrival_time, run_time, cpus, memory)
-
-    delay = _get_delay(start_time, arrival_time)
-    IO.puts("delay #{delay}")
-    #    If delay is too great, hold off processing for a bit
-
-    if delay > 30000 do
-      IO.puts("Delay is too large, waiting for a while")
-      Process.sleep(delay - 25000)
+    if(arrival_time > 0 && run_time > 0) do
+      payload = Job.Payload.new("", job_id, task_id, arrival_time, run_time, cpus, memory)
       delay = _get_delay(start_time, arrival_time)
+
+      #      IO.inspect(payload)
+      #      IO.puts("delay #{delay}")
+      #    If delay is too great, hold off processing for a bit
+
+      if delay > 30000 do
+        IO.puts("Delay is too large, waiting for a while")
+        Process.sleep(delay - 25000)
+        delay = _get_delay(start_time, arrival_time)
+      end
+      submit(payload, delay, config.schedulers)
     end
 
-    submit(payload, delay, config.schedulers)
   end
 
   def _get_delay(start_time, arrival_time) do
-    system_time = DateTime.utc_now()
-                  |> DateTime.to_unix(:millisecond)
+    system_time = _get_time(600)
     current_exec_time = system_time - start_time
     delay = max(arrival_time - current_exec_time, 0)
             |> trunc
@@ -93,13 +93,7 @@ defmodule Reader do
     spawn(
       fn ->
         pid = whoami()
-
-        Logger.debug("Process #{pid}, adding delay of #{delay} to payload #{payload}")
-
         Process.sleep(delay)
-
-        Logger.debug("Process #{pid}, woke up after delay #{delay}, sending #{payload}")
-
         sch = Enum.random(schedulers)
         payload = %{payload | scheduler: sch, client: pid}
         IO.inspect(payload)
@@ -109,9 +103,8 @@ defmodule Reader do
   end
 
   def read(config) do
-    IO.puts("Start reading")
-    start_time = DateTime.utc_now()
-                 |> DateTime.to_unix(:millisecond)
+    IO.puts("Started reading")
+    start_time = _get_time(0)
 
     File.stream!(config.trace_path)
     |> CSV.decode
@@ -122,5 +115,11 @@ defmodule Reader do
          end
        )
     |> Stream.run
+  end
+
+  def _get_time(delay) do
+    DateTime.utc_now()
+    |> DateTime.add(delay, :second)
+    |> DateTime.to_unix(:millisecond)
   end
 end
