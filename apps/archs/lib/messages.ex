@@ -7,6 +7,7 @@ defmodule Job.Payload do
     task_id: nil,
     arrival_time: nil,
     duration: nil,
+    start_time: nil,
     finish_time: nil,
     cpu_req: nil,
     mem_req: nil
@@ -27,6 +28,7 @@ defmodule Job.Payload do
       task_id: task_id,
       arrival_time: arrival_time,
       duration: duration,
+      start_time: nil,
       finish_time: nil,
       cpu_req: cpu_req,
       mem_req: mem_req
@@ -41,6 +43,7 @@ defmodule Job.Payload do
         task_id: 0,
         arrival_time: 0,
         duration: Enum.random(100..400),
+        start_time: nil,
         finish_time: nil,
         cpu_req: Enum.random(1..3),
         mem_req: Enum.random(5..10)
@@ -55,6 +58,8 @@ defmodule Job.Payload do
       task_id: 0,
       arrival_time: 0,
       duration: 50,
+      start_time: nil,
+      finish_time: nil,
       cpu_req: 2,
       mem_req: 2
     }

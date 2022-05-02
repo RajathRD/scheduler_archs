@@ -18,6 +18,7 @@ defmodule Project1.MixProject do
   # the apps folder.
   #
   # Run "mix help deps" for examples and options.
+
   defp deps do
     [
       # {:dep_from_hexpm, "~> 0.3.0"},

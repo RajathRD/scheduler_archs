@@ -27,3 +27,4 @@ resources/trace.csv
 *.idea
 *.vagrant
 *.iml
+*.log

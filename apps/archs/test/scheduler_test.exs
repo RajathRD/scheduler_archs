@@ -71,28 +71,28 @@ defmodule SCHTest do
   #   Emulation.terminate()
   # end
 
-  test "Run Centralized Scheduler with Reader" do
-    Emulation.init()
-    cluster_config = Cluster.Config.default()
+  # test "Run Centralized Scheduler with Reader" do
+  #   Emulation.init()
+  #   cluster_config = Cluster.Config.default()
 
-    cluster = Cluster.setup(cluster_config)
-    spawn(:s_1, fn -> Scheduler.start(cluster) end)
+  #   cluster = Cluster.setup(cluster_config)
+  #   spawn(:s_1, fn -> Scheduler.start(cluster) end)
 
-    reader_config = %Reader.Config{
-      scaling_factor_cpu: 100,
-      scaling_factor_mem: 150,
-      scaling_factor_time: 1,
-      schedulers: [:s_1],
-      #TODO: Handle better
-      trace_path: "#{Path.expand("../../../", __DIR__)}/resources/trace.csv"
-    }
-    Reader.read(reader_config)
-    Process.send_after(self(), :timeout, 2_000)
-    # Timeout.
-    receive do
-      :timeout -> assert true
-    end
-  after
-    Emulation.terminate()
-  end
+  #   reader_config = %Reader.Config{
+  #     scaling_factor_cpu: 100,
+  #     scaling_factor_mem: 150,
+  #     scaling_factor_time: 1,
+  #     schedulers: [:s_1],
+  #     #TODO: Handle better
+  #     trace_path: "#{Path.expand("../../../", __DIR__)}/resources/trace.csv"
+  #   }
+  #   Reader.read(reader_config)
+  #   Process.send_after(self(), :timeout, 2_000)
+  #   # Timeout.
+  #   receive do
+  #     :timeout -> assert true
+  #   end
+  # after
+  #   Emulation.terminate()
+  # end
 end

@@ -1,5 +1,6 @@
 defmodule Reader.Config do
   @enforce_keys []
+
   defstruct(
     scaling_factor_time: 1,
     scaling_factor_cpu: 10000,

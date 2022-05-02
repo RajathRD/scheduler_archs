@@ -9,8 +9,7 @@
 # move said applications out of the umbrella.
 import Config
 
-config :logger,
-  backends: [:console],
+config :logger, :console,
   compile_time_purge_matching: [
     [level_lower_than: :info]
   ],

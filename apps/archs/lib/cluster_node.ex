@@ -107,6 +107,10 @@ defmodule Cluster.Node do
     )
   end
 
+  defp mark_start_time(job) do
+    Map.put(job, :start_time, :os.system_time(:milli_seconds))
+  end
+
   defp mark_complete(job) do
     job = Map.put(job, :status, :done)
     Map.put(job, :finish_time, :os.system_time(:milli_seconds))
@@ -114,7 +118,7 @@ defmodule Cluster.Node do
 
   defp log_job(state, job) do
     me = whoami()
-    log_message = "#{job.client},#{me},#{job.scheduler},#{job.id},#{job.arrival_time},#{job.duration},#{job.finish_time},#{job.cpu_req},#{job.mem_req}\n"
+    log_message = "#{job.client},#{me},#{job.scheduler},#{job.id},#{job.arrival_time},#{job.duration},#{job.start_time},#{job.finish_time},#{job.finish_time - job.arrival_time},#{job.finish_time - job.arrival_time - job.duration},#{job.cpu_req},#{job.mem_req}\n"
     IO.write(state.log_file, log_message)
     # IO.puts(log_message)
     %{state | log: state.log ++ [job]}
@@ -129,6 +133,7 @@ defmodule Cluster.Node do
       }} ->
 
         state = if check_feasibility(state, job) do
+          job = mark_start_time(job)
           run_job(job)
           state = occupy(
             state,
