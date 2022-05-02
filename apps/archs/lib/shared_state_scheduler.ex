@@ -14,7 +14,7 @@ defmodule Coordinator.SharedState do
       1..num_schedulers,
       fn i -> String.to_atom("s_#{i}") end)
 
-    %Coordinator.CentralizedTwoLevel{
+    %Coordinator.SharedState{
       cluster: cluster,
       schedulers:  schedulers
     }
@@ -26,7 +26,6 @@ defmodule Coordinator.SharedState do
 
     Enum.map(state.schedulers,
       fn scheduler ->
-        IO.puts("#{scheduler}: #{inspect(Map.get(state.nodes, scheduler))}")
         spawn(scheduler, fn -> Scheduler.start(state.cluster) end)
       end
     )

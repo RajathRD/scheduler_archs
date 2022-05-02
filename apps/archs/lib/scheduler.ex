@@ -96,7 +96,7 @@ defmodule Scheduler do
 
       if length(available_nodes) > 0 do
         node = Enum.random(available_nodes)
-        IO.puts("#{me} sent to #{node} job -> CPU: #{job.cpu_req} MEM: #{job.mem_req} Duration:#{job.duration}")
+        # IO.puts("#{me} sent to #{node} job -> CPU: #{job.cpu_req} MEM: #{job.mem_req} Duration:#{job.duration}")
         send(
           node,
           Job.Creation.RequestRPC.new(
@@ -106,7 +106,7 @@ defmodule Scheduler do
         )
         true
       else
-        IO.puts("No Avalable Nodes")
+        # IO.puts("No Avalable Nodes")
         false
       end
     else
@@ -135,11 +135,11 @@ defmodule Scheduler do
         rstate: rstate
       }} ->
         state = if accept do
-            IO.puts("Node: #{node} - creation success for #{job_id} -> #{inspect(rstate)}")
+            # IO.puts("Node: #{node} - creation success for #{job_id} -> #{inspect(rstate)}")
             state = update_node_state(state, node, rstate)
             remove_job(state)
           else
-            IO.puts("Node: #{node} - creation failure for #{job_id}")
+            # IO.puts("Node: #{node} - creation failure for #{job_id}")
             state
         end
         state = start_schedule_timer(state)
@@ -160,7 +160,7 @@ defmodule Scheduler do
         rstate: rstate
       }}} ->
         state = update_node_state(state, node, rstate)
-        IO.puts("#{me} received ReleaseRPC from #{node}")
+        # IO.puts("#{me} received ReleaseRPC from #{node}")
         run(state)
     end
   end

@@ -18,8 +18,8 @@ defmodule Client do
 
   def start(schedulers) do
     state = init(schedulers)
-    # infinite_submit(state, 0)
-    submit_njobs(state, 0, 5)
+    infinite_submit(state, 0)
+    # submit_njobs(state, 0, 500)
   end
 
   def infinite_submit(state, id) do

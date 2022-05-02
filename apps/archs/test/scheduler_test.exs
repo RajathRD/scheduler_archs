@@ -12,14 +12,14 @@ defmodule SCHTest do
 
   test "Run Centralized Scheduler" do
     Emulation.init()
-    cluster_config = Cluster.Config.default()
+    cluster_config = Cluster.Config.default_shared()
 
     cluster = Cluster.setup(cluster_config)
 
     spawn(:s_1, fn -> Scheduler.start(cluster) end)
     client = spawn(:client_1, fn -> Client.start([:s_1]) end)
 
-    Process.send_after(self(), :timeout, 2_000)
+    Process.send_after(self(), :timeout, 4_000)
     # Timeout.
     receive do
       :timeout -> assert true
@@ -31,7 +31,7 @@ defmodule SCHTest do
 
   # test "Run Centralized Two Level Setup Test" do
   #   Emulation.init()
-  #   cluster_config = Cluster.Config.default_twolevel()
+  #   cluster_config = Cluster.Config.default_shared()
 
   #   cluster_state = Cluster.setup(cluster_config)
 
@@ -41,7 +41,7 @@ defmodule SCHTest do
 
   #   client = spawn(:client_1, fn -> Client.start(sched_state.schedulers) end)
 
-  #   Process.send_after(self(), :timeout, 2_000)
+  #   Process.send_after(self(), :timeout, 4_000)
   #   # Timeout.
   #   receive do
   #     :timeout -> assert true
@@ -52,18 +52,18 @@ defmodule SCHTest do
 
   # test "Run Shared State Scheduelr Test" do
   #   Emulation.init()
-  #   cluster_config = Cluster.Config.default_twolevel()
+  #   cluster_config = Cluster.Config.default_shared()
 
   #   cluster_state = Cluster.setup(cluster_config)
 
-  #   sched_state = Coordinator.CentralizedTwoLevel.init_config(cluster_state, 4)
+  #   sched_state = Coordinator.SharedState.init_config(cluster_state, 4)
 
-  #   coordinator = spawn(:coord_1, fn -> Coordinator.CentralizedTwoLevel.start(sched_state) end)
+  #   coordinator = spawn(:coord_1, fn -> Coordinator.SharedState.start(sched_state) end)
 
   #   client = spawn(:client_1, fn -> Client.start(sched_state.schedulers) end)
 
-  #   Process.send_after(self(), :timeout, 2_000)
-  #   # Timeout.
+  #   Process.send_after(self(), :timeout, 20_000)
+
   #   receive do
   #     :timeout -> assert true
   #   end
