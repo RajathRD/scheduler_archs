@@ -1,18 +1,3 @@
-# defmodule Cluster.Node.Config do
-#   defstruct(
-#     cpu_count: nil,
-#     memsize: nil
-#   )
-
-#   def new(cpu_count, memsize) do
-#     %Cluster.Node.Config{
-#       cpu_count: cpu_count,
-#       memsize: memsize
-#     }
-#   end
-# end
-
-
 defmodule Cluster.Node do
   import Emulation, only: [send: 2, whoami: 0]
 
@@ -21,12 +6,18 @@ defmodule Cluster.Node do
 
   require Logger
 
+  @snapshot_timeout 500
+
   defstruct(
     resource: nil,
     # FCFS task_queue
     task_queue: nil,
     log: nil,
-    log_file: nil
+    trace_log_file: nil,
+    resource_log_file: nil,
+    snapshot_timeout: nil,
+    snapshot_timer: nil,
+    snap_count: nil
   )
 
   def print_resource_state(state) do
@@ -41,30 +32,57 @@ defmodule Cluster.Node do
 
   def init(resource) do
     me = whoami()
-    log_path = "./logs/" <> Atom.to_string(me) <> ".log"
-    File.write(log_path, "")
-    {status, file} = File.open(log_path, [:write])
+    trace_log_path = "./logs/" <> Atom.to_string(me) <> "_trace.log"
+    resource_log_path = "./logs/" <> Atom.to_string(me) <> "_resource.log"
+    File.write(trace_log_path, "")
+    File.write(resource_log_path, "")
+    {status, trace_file} = File.open(trace_log_path, [:write])
 
     case status do
       :ok ->
-        # Logger.info("File open worked just fine")
         true
       _ ->
-        Logger.error("#{me} Log File could not be created at #{log_path}")
+        Logger.error("#{me} Log File could not be created at #{trace_log_path}")
+    end
+
+    {status, resource_file} = File.open(resource_log_path, [:write])
+    case status do
+      :ok ->
+        true
+      _ ->
+        Logger.error("#{me} Log File could not be created at #{resource_log_path}")
     end
 
     %Cluster.Node{
       resource: resource,
       task_queue: nil,
       log: [],
-      log_file: file
+      trace_log_file: trace_file,
+      resource_log_file: resource_file,
+      snapshot_timeout: @snapshot_timeout,
+      snapshot_timer: nil,
+      snap_count: 0
     }
+  end
+
+  defp start_snapshot_timer(state) do
+    %{state | snapshot_timer: Emulation.timer(state.snapshot_timeout, :snap)}
+  end
+
+  defp add_snap_count(state) do
+    %{state | snap_count: state.snap_count + 1}
+  end
+
+  defp stop_snapshot_timer(state) do
+    Emulation.cancel_timer(state.snapshot_timer)
+    %{state | snapshot_timer: nil}
   end
 
   def start(resource) do
     me = whoami()
     state = init(resource)
     IO.puts("Node: #{me} is live")
+    state = start_snapshot_timer(state)
     loop(state)
   end
 
@@ -116,10 +134,17 @@ defmodule Cluster.Node do
     Map.put(job, :finish_time, :os.system_time(:milli_seconds))
   end
 
+  defp log_resource(state) do
+    me = whoami()
+    # IO.puts("#{me} - Logging Resoure")
+    log_message = "#{me},#{state.snap_count},#{state.resource.cpu_capacity},#{state.resource.mem_capacity},#{state.resource.cpu_occupied},#{state.resource.mem_occupied}\n"
+    IO.write(state.resource_log_file, log_message)
+  end
+
   defp log_job(state, job) do
     me = whoami()
     log_message = "#{job.client},#{me},#{job.scheduler},#{job.id},#{job.arrival_time},#{job.duration},#{job.start_time},#{job.finish_time},#{job.finish_time - job.arrival_time},#{job.finish_time - job.arrival_time - job.duration},#{job.cpu_req},#{job.mem_req}\n"
-    IO.write(state.log_file, log_message)
+    IO.write(state.trace_log_file, log_message)
     # IO.puts(log_message)
     %{state | log: state.log ++ [job]}
   end
@@ -146,7 +171,7 @@ defmodule Cluster.Node do
           send( sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
           state
         end
-        print_resource_state(state)
+        # print_resource_state(state)
         loop(state)
 
       {:done, job} ->
@@ -155,18 +180,25 @@ defmodule Cluster.Node do
           Resource.new(job.cpu_req, job.mem_req)
         )
 
-        IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
+        # IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
         job = mark_complete(job)
         state = log_job(state, job)
 
-        print_resource_state(state)
+        # print_resource_state(state)
 
         send(job.scheduler, {
           :release,
           Resource.ReleaseRPC.new(me, state.resource)
         })
-
         loop(state)
+
+      :snap ->
+        log_resource(state)
+        state = add_snap_count(state)
+        state = stop_snapshot_timer(state)
+        state = start_snapshot_timer(state)
+        loop(state)
+
     end
   end
 end
