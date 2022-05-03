@@ -4,6 +4,8 @@ defmodule Coordinator.CentralizedTwoLevel do
   import Kernel,
     except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
 
+  require Logger
+
   defstruct(
     cluster: nil,
     snodes: nil,
@@ -17,7 +19,9 @@ defmodule Coordinator.CentralizedTwoLevel do
 
     all_nodes = Map.keys(cluster.nodes)
     all_nodes = Enum.shuffle(all_nodes)
-
+    if cluster.master != nil do
+      Logger.error("Disable cluster master for two level and then try again")
+    end
     # resource initialization
     num_nodes_per_scheduler = ceil(length(all_nodes)/num_schedulers)
     snodes = Enum.map(

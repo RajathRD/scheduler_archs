@@ -4,7 +4,7 @@ defmodule Scheduler do
   import Kernel,
     except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
 
-
+  @sync_timeout 300
   @schedule_timeout 50
   @retry_timeout 300
 
@@ -14,8 +14,10 @@ defmodule Scheduler do
     cluster: nil,
     schedule_timeout: nil,
     retry_timeout: nil,
+    sync_timeout: nil,
     schedule_timer: nil,
-    retry_timer: nil
+    retry_timer: nil,
+    sync_timer: nil
   )
 
   def init(cluster) do
@@ -25,8 +27,10 @@ defmodule Scheduler do
       cluster: cluster,
       schedule_timeout: @schedule_timeout,
       retry_timeout: @retry_timeout,
+      sync_timeout: @sync_timeout,
       schedule_timer: nil,
-      retry_timer: nil
+      retry_timer: nil,
+      sync_timer: nil
     }
   end
 
@@ -57,10 +61,23 @@ defmodule Scheduler do
     }
   end
 
+  def update_node_state(state, nodes) do
+    %{state | cluster: Map.put(state.cluster, :nodes, nodes)}
+  end
+
+  defp start_sync_timer(state) do
+    %{state | sync_timer: Emulation.timer(state.sync_timeout, :sync_rstate)}
+  end
+
+  defp stop_sync_timer(state) do
+    Emulation.cancel_timer(state.sync_timer)
+    %{state | sync_timer: nil}
+  end
+
+
   def start_schedule_timer(state) do
     %{state | schedule_timer: Emulation.timer(state.schedule_timeout, :schedule)}
   end
-
 
   def stop_schedule_timer(state) do
     Emulation.cancel_timer(state.schedule_timer)
@@ -115,8 +132,15 @@ defmodule Scheduler do
   end
 
   def start(cluster) do
+    me = whoami()
     state = init(cluster)
     state = start_schedule_timer(state)
+
+    state = if state.cluster.master != nil do
+        start_sync_timer(state)
+      else
+        state
+      end
     run(state)
   end
 
@@ -161,6 +185,19 @@ defmodule Scheduler do
       }}} ->
         state = update_node_state(state, node, rstate)
         # IO.puts("#{me} received ReleaseRPC from #{node}")
+        run(state)
+
+      :sync_rstate ->
+        # IO.puts("trying to sync with #{state.cluster.master}...")
+        send(state.cluster.master, {:sync_rstate, Resource.Synchronize.RequestRPC.new(me)})
+        state = stop_sync_timer(state)
+        state = start_sync_timer(state)
+        run(state)
+
+      {sender, {:sync_rstate, %Resource.Synchronize.ReplyRPC{
+        nodes: nodes
+      }}} ->
+        state = update_node_state(state, nodes)
         run(state)
     end
   end

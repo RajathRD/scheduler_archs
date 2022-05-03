@@ -17,7 +17,10 @@ defmodule Cluster.Node do
     resource_log_file: nil,
     snapshot_timeout: nil,
     snapshot_timer: nil,
-    snap_count: nil
+    snap_count: nil,
+    master: nil,
+    sync_timeout: nil,
+    sync_timer: nil
   )
 
   def print_resource_state(state) do
@@ -30,7 +33,7 @@ defmodule Cluster.Node do
     state
   end
 
-  def init(resource) do
+  def init(resource, master \\ nil) do
     me = whoami()
     trace_log_path = "./logs/" <> Atom.to_string(me) <> "_trace.log"
     resource_log_path = "./logs/" <> Atom.to_string(me) <> "_resource.log"
@@ -61,7 +64,8 @@ defmodule Cluster.Node do
       resource_log_file: resource_file,
       snapshot_timeout: @snapshot_timeout,
       snapshot_timer: nil,
-      snap_count: 0
+      snap_count: 0,
+      master: master
     }
   end
 
@@ -76,14 +80,6 @@ defmodule Cluster.Node do
   defp stop_snapshot_timer(state) do
     Emulation.cancel_timer(state.snapshot_timer)
     %{state | snapshot_timer: nil}
-  end
-
-  def start(resource) do
-    me = whoami()
-    state = init(resource)
-    IO.puts("Node: #{me} is live")
-    state = start_snapshot_timer(state)
-    loop(state)
   end
 
   def occupy(state, resource) do
@@ -149,6 +145,36 @@ defmodule Cluster.Node do
     %{state | log: state.log ++ [job]}
   end
 
+  defp send_release_rpcs(state, job) do
+    me = whoami()
+    send(job.scheduler, {
+      :release,
+      Resource.ReleaseRPC.new(me, state.resource)
+    })
+    if state.master != nil do
+      send(state.master, {
+        :release,
+        Resource.ReleaseRPC.new(me, state.resource)
+      })
+    end
+  end
+
+  defp send_jobcreation_rpcs(sender, state, job) do
+    me = whoami()
+    send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
+    if state.master != nil do
+      send(state.master, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
+    end
+  end
+
+  def start(resource, master \\ nil) do
+    me = whoami()
+    state = init(resource, master)
+    IO.puts("Node: #{me} is live")
+    state = start_snapshot_timer(state)
+    loop(state)
+  end
+
   def loop(state) do
     me = whoami()
     receive do
@@ -164,7 +190,7 @@ defmodule Cluster.Node do
             state,
             Resource.new(job.cpu_req, job.mem_req)
           )
-          send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
+          send_jobcreation_rpcs(sender, state, job)
           state
 
         else
@@ -180,16 +206,12 @@ defmodule Cluster.Node do
           Resource.new(job.cpu_req, job.mem_req)
         )
 
-        # IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
+        IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
         job = mark_complete(job)
         state = log_job(state, job)
 
         # print_resource_state(state)
-
-        send(job.scheduler, {
-          :release,
-          Resource.ReleaseRPC.new(me, state.resource)
-        })
+        send_release_rpcs(state, job)
         loop(state)
 
       :snap ->
@@ -198,7 +220,6 @@ defmodule Cluster.Node do
         state = stop_snapshot_timer(state)
         state = start_snapshot_timer(state)
         loop(state)
-
     end
   end
 end

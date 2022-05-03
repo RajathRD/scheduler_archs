@@ -5,33 +5,35 @@ defmodule SCHTest do
   doctest Cluster
   doctest Cluster.Node
 
+  @test_timeout 4_000
+
   import Emulation, only: [spawn: 2]
   import Reader
   import Kernel,
          except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
 
-  test "Run Centralized Scheduler" do
-    Emulation.init()
-    cluster_config = Cluster.Config.default_shared()
+  # test "Run Centralized Scheduler" do
+  #   Emulation.init()
+  #   cluster_config = Cluster.Config.default()
 
-    cluster = Cluster.setup(cluster_config)
+  #   cluster = Cluster.setup(cluster_config)
 
-    spawn(:s_1, fn -> Scheduler.start(cluster) end)
-    client = spawn(:client_1, fn -> Client.start([:s_1]) end)
+  #   spawn(:s_1, fn -> Scheduler.start(cluster) end)
+  #   client = spawn(:client_1, fn -> Client.start([:s_1]) end)
 
-    Process.send_after(self(), :timeout, 4_000)
-    # Timeout.
-    receive do
-      :timeout -> assert true
-    end
-  after
-    Emulation.terminate()
-  end
+  #   Process.send_after(self(), :timeout, @test_timeout)
+  #   # Timeout.
+  #   receive do
+  #     :timeout -> assert true
+  #   end
+  # after
+  #   Emulation.terminate()
+  # end
 
 
   # test "Run Centralized Two Level Setup Test" do
   #   Emulation.init()
-  #   cluster_config = Cluster.Config.default_shared()
+  #   cluster_config = Cluster.Config.default_twolevel()
 
   #   cluster_state = Cluster.setup(cluster_config)
 
@@ -41,7 +43,7 @@ defmodule SCHTest do
 
   #   client = spawn(:client_1, fn -> Client.start(sched_state.schedulers) end)
 
-  #   Process.send_after(self(), :timeout, 4_000)
+  #   Process.send_after(self(), :timeout, @test_timeout)
   #   # Timeout.
   #   receive do
   #     :timeout -> assert true
@@ -50,26 +52,26 @@ defmodule SCHTest do
   #   Emulation.terminate()
   # end
 
-  # test "Run Shared State Scheduelr Test" do
-  #   Emulation.init()
-  #   cluster_config = Cluster.Config.default_shared()
+  test "Run Shared State Scheduelr Test" do
+    Emulation.init()
+    cluster_config = Cluster.Config.default_shared()
 
-  #   cluster_state = Cluster.setup(cluster_config)
+    cluster_state = Cluster.setup(cluster_config)
 
-  #   sched_state = Coordinator.SharedState.init_config(cluster_state, 4)
+    sched_state = Coordinator.SharedState.init_config(cluster_state, 4)
 
-  #   coordinator = spawn(:coord_1, fn -> Coordinator.SharedState.start(sched_state) end)
+    coordinator = spawn(:coord_1, fn -> Coordinator.SharedState.start(sched_state) end)
 
-  #   client = spawn(:client_1, fn -> Client.start(sched_state.schedulers) end)
+    client = spawn(:client_1, fn -> Client.start(sched_state.schedulers) end)
 
-  #   Process.send_after(self(), :timeout, 20_000)
+    Process.send_after(self(), :timeout, @test_timeout)
 
-  #   receive do
-  #     :timeout -> assert true
-  #   end
-  # after
-  #   Emulation.terminate()
-  # end
+    receive do
+      :timeout -> assert true
+    end
+  after
+    Emulation.terminate()
+  end
 
 #  @tag timeout: :infinity
 #  test "Run Centralized Scheduler with Reader" do
@@ -92,7 +94,7 @@ defmodule SCHTest do
 #      trace_path: "#{Path.expand("../../../", __DIR__)}/resources/trace.csv"
 #    }
 #    Reader.read(reader_config)
-#    Process.send_after(self(), :timeout, 2_000)
+#    Process.send_after(self(), :timeout, @test_timeout)
 #    # Timeout.
 #    receive do
 #      :timeout -> assert true

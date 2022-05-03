@@ -152,3 +152,27 @@ defmodule Resource.ReleaseRPC do
     }
   end
 end
+
+defmodule Resource.Synchronize.RequestRPC do
+  defstruct(
+    scheduler: nil
+  )
+
+  def new(scheduler) do
+    %Resource.Synchronize.RequestRPC{
+      scheduler: scheduler
+    }
+  end
+end
+
+defmodule Resource.Synchronize.ReplyRPC do
+  defstruct(
+    nodes: nil
+  )
+
+  def new(nodes) do
+    %Resource.Synchronize.ReplyRPC{
+      nodes: nodes
+    }
+  end
+end
