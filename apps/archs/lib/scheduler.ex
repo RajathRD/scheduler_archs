@@ -1,4 +1,4 @@
-defmodule Scheduler do
+defmodule Scheduler.FIFO do
   import Emulation, only: [send: 2, whoami: 0, timer: 2]
 
   import Kernel,
@@ -21,7 +21,7 @@ defmodule Scheduler do
   )
 
   def init(cluster) do
-    %Scheduler{
+    %Scheduler.FIFO{
       task_queue: :queue.new(),
       job_complete_count: 0,
       cluster: cluster,
@@ -155,15 +155,15 @@ defmodule Scheduler do
       {sender, %Job.Creation.ReplyRPC{
         node: node,
         accept: accept,
-        job_id: job_id,
+        job: job,
         rstate: rstate
       }} ->
         state = if accept do
-            # IO.puts("Node: #{node} - creation success for #{job_id} -> #{inspect(rstate)}")
+            # IO.puts("Node: #{node} - creation success for #{job.id} -> #{inspect(rstate)}")
             state = update_node_state(state, node, rstate)
             remove_job(state)
           else
-            # IO.puts("Node: #{node} - creation failure for #{job_id}")
+            # IO.puts("Node: #{node} - creation failure for #{job.id}")
             state
         end
         state = start_schedule_timer(state)
@@ -181,6 +181,7 @@ defmodule Scheduler do
 
       {sender, {:release, %Resource.ReleaseRPC{
         node: node,
+        job: _,
         rstate: rstate
       }}} ->
         state = update_node_state(state, node, rstate)

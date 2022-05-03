@@ -1,7 +1,8 @@
 defmodule SCHTest do
   use ExUnit.Case
   doctest Client
-  doctest Scheduler
+  doctest Scheduler.FIFO
+  doctest Scheduler.DRF
   doctest Cluster
   doctest Cluster.Node
 
@@ -18,9 +19,9 @@ defmodule SCHTest do
 
   #   cluster = Cluster.setup(cluster_config)
 
-  #   spawn(:s_1, fn -> Scheduler.start(cluster) end)
-  #   client = spawn(:client_1, fn -> Client.start([:s_1]) end)
-
+  #   spawn(:s_1, fn -> Scheduler.DRF.start(cluster) end)
+  #   spawn(:client_1, fn -> Client.start([:s_1]) end)
+  #   spawn(:client_2, fn -> Client.start([:s_1]) end)
   #   Process.send_after(self(), :timeout, @test_timeout)
   #   # Timeout.
   #   receive do
@@ -83,7 +84,7 @@ defmodule SCHTest do
 #      nodes: nil
 #    }
 #    cluster = Cluster.setup(cluster_config)
-#    spawn(:s_1, fn -> Scheduler.start(cluster) end)
+#    spawn(:s_1, fn -> Scheduler.FIFO.start(cluster) end)
 #
 #    reader_config = %Reader.Config{
 #      scaling_factor_cpu: 50,

@@ -149,19 +149,19 @@ defmodule Cluster.Node do
     me = whoami()
     send(job.scheduler, {
       :release,
-      Resource.ReleaseRPC.new(me, state.resource)
+      Resource.ReleaseRPC.new(me, job, state.resource)
     })
     if state.master != nil do
       send(state.master, {
         :release,
-        Resource.ReleaseRPC.new(me, state.resource)
+        Resource.ReleaseRPC.new(me, job, state.resource)
       })
     end
   end
 
   defp send_jobcreation_rpcs(sender, state, job) do
     me = whoami()
-    send(sender, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
+    send(sender, Job.Creation.ReplyRPC.new(me, true, job, state.resource))
     if state.master != nil do
       send(state.master, Job.Creation.ReplyRPC.new(me, true, job.id, state.resource))
     end
@@ -194,7 +194,7 @@ defmodule Cluster.Node do
           state
 
         else
-          send( sender, Job.Creation.ReplyRPC.new(me, false, job.id, state.resource))
+          send( sender, Job.Creation.ReplyRPC.new(me, false, job, state.resource))
           state
         end
         # print_resource_state(state)
@@ -206,7 +206,7 @@ defmodule Cluster.Node do
           Resource.new(job.cpu_req, job.mem_req)
         )
 
-        IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
+        # IO.puts("Node #{me} - Job #{job.id} Completed. Release: C:#{job.cpu_req} M:#{job.mem_req} ->")
         job = mark_complete(job)
         state = log_job(state, job)
 

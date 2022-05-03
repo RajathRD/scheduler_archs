@@ -5,7 +5,9 @@ defmodule Cluster.Config do
     cpu_count_per_machine: nil,
     memsize_per_machine: nil,
     nodes: nil,
-    master: nil
+    master: nil,
+    cluster_cpu_count: nil,
+    cluster_memsize: nil
   )
 
   def new(
@@ -18,37 +20,45 @@ defmodule Cluster.Config do
       cpu_count_per_machine: cpu_count,
       memsize_per_machine: memsize,
       nodes: nodes,
-      master: master
+      master: master,
+      cluster_cpu_count: num_nodes * cpu_count,
+      cluster_memsize: num_nodes * memsize
     }
   end
 
-  def default do
+  def default(num_nodes \\ 1, cpu_count \\ 10, memsize \\ 25) do
     %Cluster.Config {
-      num_nodes: 1,
-      cpu_count_per_machine: 10,
-      memsize_per_machine: 25,
+      num_nodes: num_nodes,
+      cpu_count_per_machine: cpu_count,
+      memsize_per_machine: memsize,
       nodes: nil,
-      master: nil
+      master: nil,
+      cluster_cpu_count: num_nodes * cpu_count,
+      cluster_memsize: num_nodes * memsize
     }
   end
 
-  def default_twolevel do
+  def default_twolevel(num_nodes \\ 4, cpu_count \\ 10, memsize \\ 25) do
     %Cluster.Config {
-      num_nodes: 4,
-      cpu_count_per_machine: 10,
-      memsize_per_machine: 25,
+      num_nodes: num_nodes,
+      cpu_count_per_machine: cpu_count,
+      memsize_per_machine: memsize,
       nodes: nil,
-      master: nil
+      master: nil,
+      cluster_cpu_count: num_nodes * cpu_count,
+      cluster_memsize: num_nodes * memsize
     }
   end
 
-    def default_shared do
+    def default_shared(num_nodes \\ 4, cpu_count \\ 10, memsize \\ 25) do
       %Cluster.Config {
-        num_nodes: 4,
-        cpu_count_per_machine: 10,
-        memsize_per_machine: 25,
+        num_nodes: num_nodes,
+        cpu_count_per_machine: cpu_count,
+        memsize_per_machine: memsize,
         nodes: nil,
-        master: :cluster_master
+        master: nil,
+        cluster_cpu_count: num_nodes * cpu_count,
+        cluster_memsize: num_nodes * memsize
       }
   end
 end
@@ -95,6 +105,7 @@ defmodule Cluster.Master do
 
       {sender, {:release, %Resource.ReleaseRPC{
         node: node,
+        job: _,
         rstate: rstate
       }}} ->
         # IO.puts("#{node} release")
@@ -105,7 +116,7 @@ defmodule Cluster.Master do
       {sender, %Job.Creation.ReplyRPC{
         node: node,
         accept: accept,
-        job_id: job_id,
+        job: _,
         rstate: rstate
       }} ->
         # IO.puts("#{node} occupy")
@@ -121,6 +132,11 @@ defmodule Cluster do
 
   import Kernel,
   except: [spawn: 3, spawn: 1, spawn_link: 1, spawn_link: 3, send: 2]
+
+  defp update_cluster_totals(state) do
+    state = %{state | cluster_cpu_count: state.num_nodes * state.cpu_count_per_machine}
+    %{state | cluster_memsize: state.num_nodes * state.memsize_per_machine}
+  end
 
   defp update_nodes(state, nodes) do
     %{state | nodes: nodes}
@@ -156,6 +172,7 @@ defmodule Cluster do
     end
     IO.puts("Cluster setup completed")
 
+    IO.puts("Cluster Config: #{inspect(state)}")
     state
   end
 end

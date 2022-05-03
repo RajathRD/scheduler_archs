@@ -12,7 +12,7 @@ defmodule Client do
   def init(schedulers) do
     %Client{
       schedulers: schedulers,
-      timeout: 20
+      timeout: 150
     }
   end
 

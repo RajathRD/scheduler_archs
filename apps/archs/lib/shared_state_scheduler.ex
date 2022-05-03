@@ -26,7 +26,7 @@ defmodule Coordinator.SharedState do
 
     Enum.map(state.schedulers,
       fn scheduler ->
-        spawn(scheduler, fn -> Scheduler.start(state.cluster) end)
+        spawn(scheduler, fn -> Scheduler.DRF.start(state.cluster) end)
       end
     )
 

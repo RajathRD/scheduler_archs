@@ -59,7 +59,7 @@ defmodule Coordinator.CentralizedTwoLevel do
           state.cluster.memsize_per_machine,
           scheduler_nodes
         )
-        spawn(scheduler, fn -> Scheduler.start(scheduler_cluster) end)
+        spawn(scheduler, fn -> Scheduler.DRF.start(scheduler_cluster) end)
       end
     )
 
