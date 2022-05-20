@@ -6,3 +6,6 @@
   - mix deps.get
   - mix compile
   - mix test test/sch_test.exs:5 (line number for test)
+
+
+Report for the project: https://drive.google.com/file/d/1clOGjmVOw_WpbqAZlyUl43ICQ20wMyT7/view?usp=sharing
